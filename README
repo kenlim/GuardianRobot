@@ -1,10 +1,14 @@
 This is the code that runs the Guardian Robot. There are 2 folders here:
 
-1. GuardianRobotArduinoController
+1. ArduinoController
 This is the code that will be uploaded to the Arduino board. This controls the actual servos and switches. 
 
-2. GuardianRobotTwitterPollingService
+2. TwitterPollingRobotManager 
 This is the code that runs on your computer and actually polls Twitter. It sends emotive directions to the robot via USB.
+
+NOTE: you will need to rename the file credentials.txt.RENAME to just "credentials.txt". Then edit the file to have your Twitter username on the first line, and your Twitter password on the second line. 
+
+The robot needs these credentials to connect to Twitter. 
 
 Ken Lim
 (kennethlimfc@gmail.com)
