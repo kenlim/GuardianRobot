@@ -1,0 +1,12 @@
+This is the code that runs the Guardian Robot. There are 2 folders here:
+
+1. GuardianRobotArduinoController
+This is the code that will be uploaded to the Arduino board. This controls the actual servos and switches. 
+
+2. GuardianRobotTwitterPollingService
+This is the code that runs on your computer and actually polls Twitter. It sends emotive directions to the robot via USB.
+
+Ken Lim
+(kennethlimfc@gmail.com)
+11 August 2009
+
