@@ -143,7 +143,7 @@ void serialEvent(Serial robotPort) {
      try {
       inByte = robotPort.read(); 
       
-       if (inByte > 1) {
+       if (inByte > 0) {
          if (statusIsHappy(currentStatusJob)) {
           // send Highfive
           twitter.updateStatus( "@" + userName + " : " + happyReply, currentStatusJob.getId()); 
