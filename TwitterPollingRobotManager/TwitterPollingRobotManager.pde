@@ -204,8 +204,11 @@ boolean statusNeedsHug(Status status) {
 
 void displayStatus(Status status) {
   background(0);
+  try {
     userImage = loadImage(status.getUser().getProfileImageURL().toString());
-      image(userImage, x, 30);
+    image(userImage, x, 30);
+  } catch (Exception e) {}
+
   fill(255);
   text(status.getUser().getName() + " ", x + 75, 60); 
   fill(255);
@@ -215,7 +218,9 @@ void displayStatus(Status status) {
 void reportReply(String message, Status status) {
   background(0);
 
-  image(userImage, x, 30);
+  if (userImage != null) {
+    image(userImage, x, 30);
+  }
   fill(255);
   text(status.getUser().getName() + " ", x + 75, 60); 
   fill(255);
