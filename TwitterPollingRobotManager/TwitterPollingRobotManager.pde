@@ -5,8 +5,8 @@ import java.util.List;
 Twitter twitter; 
 String username;
 String password;
-String happyHashExpression = ".*\\#highfive.*";
-String sadHashExpression = ".*\\#ineedahug.*";
+String happyHashExpression = ".*\\#highfivetest.*";
+String sadHashExpression = ".*\\#ineedahugtest.*";
 String happyReply = "Got a high-five! You rock!";
 String sadReply = "I just received a hug; Sending it to you. *hug*";
 String stillWaitingForHighFive = "Still waiting for high-five. Please don't leave me hanging.";
@@ -22,11 +22,12 @@ List jobList;
 boolean waitingForRobot;
 
 // Display settings
-int screenWidth = screen.width/3;
+int screenWidth = screen.width;
 int screenMargin = 50;
 PFont fontA;
 int x = 30;
 PImage userImage;
+PImage nextImage;
 
 // Serial communication settings
 Serial robotPort;
@@ -121,18 +122,69 @@ void draw() {
    lastRobotUpdateTime = millis();
  }
  
- if (waitingForRobot && (millis() - lastRobotUpdateTime) > 600000) {
+ if (waitingForRobot && (millis() - lastRobotUpdateTime) > 18000) {  // start complaining after 10 minutes
      try {
      if (statusIsHappy(currentStatusJob)) {
-       println("Waiting for high five...");
-       twitter.updateStatus(stillWaitingForHighFive);
+       // do you have another high five buffered?
+       Status nextHappy = getNextAvailableHighFive();
+       // if yes, then forward that instead. 
+       if (nextHappy !=null) {
+         println("Outsourcing highfive...");
+         displayForwardedHug(currentStatusJob, nextHappy, "Forwarding highfive from");
+         twitter.updateStatus("@" + currentStatusJob.getUser().getName() + " : Got a high five from " + nextHappy.getUser().getName() + " for you. You Rock!");
+         delay(5000);
+         // send neutral expression
+         robotPort.write('N');
+         // remove the jobs
+              jobList.remove(currentStatusJob);    
+              jobList.remove(nextHappy);    
+         // don't wait for the robot anymore. 
+        waitingForRobot = false; 
+       }
+       
      } else if (statusNeedsHug(currentStatusJob)) {
-       println("Waiting for hug...");
-       twitter.updateStatus(stillWaitingForHug);
+       // do you have another hug buffered?
+       Status nextHug = getNextAvailableHug();
+       // if yes, then forward that instead. 
+       if (nextHug !=null) {
+         println("Outsourcing hug...");
+         displayForwardedHug(currentStatusJob, nextHug, "Forwarding hug from");
+         twitter.updateStatus("@" + currentStatusJob.getUser().getName() + " : I got a hug from " + nextHug.getUser().getName() + "; Passing it to you. *hug*");
+         delay(5000);
+         // send neutral expression
+         robotPort.write('N');
+         // remove the jobs
+              jobList.remove(currentStatusJob);    
+              jobList.remove(nextHug);    
+         // don't wait for the robot anymore. 
+        waitingForRobot = false; 
+       }
      } 
    } catch (TwitterException e) {}
  }
  
+}
+
+// get next available high five
+Status getNextAvailableHighFive() {
+  for(int i = 0; i < jobList.size(); i++) {
+    Status status = (Status) jobList.get(i);
+    if(statusIsHappy(status) && !status.equals(currentStatusJob)){
+      return status;
+    } 
+  }
+ return null; 
+}
+
+// get next available high five
+Status getNextAvailableHug() {
+  for(int i = 0; i < jobList.size(); i++) {
+    Status status = (Status) jobList.get(i);
+    if(statusNeedsHug(status)  && !status.equals(currentStatusJob)){
+      return status;
+    } 
+  }
+ return null; 
 }
 
 // Respond to button pushes
@@ -169,9 +221,11 @@ boolean intervalHasPast() {
 }  
 
 List getAllRepliesSinceStatusId(long sinceId) {
+  if (sinceId > 0) {
   try {
     return twitter.getMentions(new Paging(1).sinceId(sinceId));
   } catch (TwitterException e) {}
+  }
   return new ArrayList();
 }
 
@@ -204,11 +258,8 @@ boolean statusNeedsHug(Status status) {
 
 void displayStatus(Status status) {
   background(0);
-  try {
     userImage = loadImage(status.getUser().getProfileImageURL().toString());
-    image(userImage, x, 30);
-  } catch (Exception e) {}
-
+      image(userImage, x, 30);
   fill(255);
   text(status.getUser().getName() + " ", x + 75, 60); 
   fill(255);
@@ -218,11 +269,23 @@ void displayStatus(Status status) {
 void reportReply(String message, Status status) {
   background(0);
 
-  if (userImage != null) {
-    image(userImage, x, 30);
-  }
+  image(userImage, x, 30);
   fill(255);
   text(status.getUser().getName() + " ", x + 75, 60); 
   fill(255);
   text("> " + message, x, 95, screenWidth - 50 - x -x, screen.height - 95);
 }
+
+void displayForwardedHug(Status currentStatus, Status nextStatus, String message) {
+  background(0);
+  nextImage = loadImage(nextStatus.getUser().getProfileImageURL().toString());
+
+  image(userImage, x, 30);
+  fill(255);
+  text(currentStatus.getUser().getName() + " ", x + 75, 60); 
+  fill(255);
+  text("> " + message, x, 175);
+  image(nextImage, x, 200);
+    text(nextStatus.getUser().getName(), x + 75, 250);
+}
+
