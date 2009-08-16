@@ -5,18 +5,21 @@ import java.util.List;
 Twitter twitter; 
 String username;
 String password;
-String happyHashExpression = ".*\\#highfivetest.*";
-String sadHashExpression = ".*\\#ineedahugtest.*";
+String happyHashExpression = ".*\\#highfive.*";
+String sadHashExpression = ".*#ineedahug.*";
 String happyReply = "Got a high-five! You rock!";
 String sadReply = "I just received a hug; Sending it to you. *hug*";
 String stillWaitingForHighFive = "Still waiting for high-five. Please don't leave me hanging.";
 String stillWaitingForHug = "Still waiting for a hug...";
 
+
 int pollingInterval = 60 * 1000; // 60 seconds
 int lastTwitterPollTime;
 int lastRobotUpdateTime;
 
-long placeholderStatusId;
+// Shortcircuit the statusid 
+long placeholderStatusId = 3331554798L;
+//long placeholderStatusId;
 List jobList;
 
 boolean waitingForRobot;
@@ -56,7 +59,12 @@ void setup() {
 //    twitter.updateStatus("Guardian Robot online. Internet Connection enabled. Hello, world!");
     userUpdates = twitter.getUserTimeline();
   } catch (TwitterException e) {println(e);}
+  
+  if (placeholderStatusId > 0) { 
   placeholderStatusId = getMostRecentSentResponse(userUpdates);    
+  } else {
+   println("using short circuited reply id"); 
+  }
   
   jobList = new ArrayList();
   waitingForRobot = false;
@@ -74,10 +82,14 @@ long getMostRecentSentResponse(List userUpdates) {
     if (statusText.matches("^@.*")) {
       long statusThisRepliedTo = status.getInReplyToStatusId();
       println("Last reply sent was: " + statusText + " (statusId: " + statusThisRepliedTo + ")");
+      
+      if (statusThisRepliedTo < 1) {
+       return 1; 
+      }
       return statusThisRepliedTo; 
     }
   }
-  return 0;
+  return 1;
 }
 
 /// The main loop
@@ -122,7 +134,7 @@ void draw() {
    lastRobotUpdateTime = millis();
  }
  
- if (waitingForRobot && (millis() - lastRobotUpdateTime) > 18000) {  // start complaining after 10 minutes
+ if (waitingForRobot && (millis() - lastRobotUpdateTime) > 18000) {  // start complaining after 30 minutes
      try {
      if (statusIsHappy(currentStatusJob)) {
        // do you have another high five buffered?
@@ -131,7 +143,7 @@ void draw() {
        if (nextHappy !=null) {
          println("Outsourcing highfive...");
          displayForwardedHug(currentStatusJob, nextHappy, "Forwarding highfive from");
-         twitter.updateStatus("@" + currentStatusJob.getUser().getName() + " : Got a high five from " + nextHappy.getUser().getName() + " for you. You Rock!");
+         twitter.updateStatus("@" + nextHappy.getUser().getScreenName() + " passing you highfive from @" + currentStatusJob.getUser().getScreenName() + "! You guys rock!", currentStatusJob.getId());
          delay(5000);
          // send neutral expression
          robotPort.write('N');
@@ -149,7 +161,7 @@ void draw() {
        if (nextHug !=null) {
          println("Outsourcing hug...");
          displayForwardedHug(currentStatusJob, nextHug, "Forwarding hug from");
-         twitter.updateStatus("@" + currentStatusJob.getUser().getName() + " : I got a hug from " + nextHug.getUser().getName() + "; Passing it to you. *hug*");
+         twitter.updateStatus("@" + currentStatusJob.getUser().getScreenName() + " passing hug from @" + nextHug.getUser().getScreenName() + "; *Group hug!*", currentStatusJob.getId());
          delay(5000);
          // send neutral expression
          robotPort.write('N');
@@ -221,11 +233,11 @@ boolean intervalHasPast() {
 }  
 
 List getAllRepliesSinceStatusId(long sinceId) {
-  if (sinceId > 0) {
+
   try {
     return twitter.getMentions(new Paging(1).sinceId(sinceId));
   } catch (TwitterException e) {}
-  }
+
   return new ArrayList();
 }
 
@@ -280,6 +292,7 @@ void displayForwardedHug(Status currentStatus, Status nextStatus, String message
   background(0);
   nextImage = loadImage(nextStatus.getUser().getProfileImageURL().toString());
 
+  println("display forwarded hug");
   image(userImage, x, 30);
   fill(255);
   text(currentStatus.getUser().getName() + " ", x + 75, 60); 
@@ -287,5 +300,6 @@ void displayForwardedHug(Status currentStatus, Status nextStatus, String message
   text("> " + message, x, 175);
   image(nextImage, x, 200);
     text(nextStatus.getUser().getName(), x + 75, 250);
+      text(nextStatus.getText(), x, 300, screenWidth - 50 - x -x, screen.height - 300);
 }
 
